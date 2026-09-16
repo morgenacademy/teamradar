@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>AI Teamradar PharmaPartners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --purple:#5B2D8E; --purple-light:#9B6FCF; --accent:#D8FE56; --bg:#0C0818; --white:#FFFFFF;
+  --text:#F0ECF5; --text-2:#D8CCEC; --muted:#7A6B8E;
+  --glass-bg:rgba(255,255,255,.08); --glass-bg-strong:rgba(255,255,255,.12); --glass-border:rgba(255,255,255,.18);
+  --card-bg-strong:rgba(155,111,207,.30); --card-border:rgba(180,145,230,.45);
+  --blur:blur(40px) saturate(200%);
+  --shadow:0 4px 24px rgba(0,0,0,.4),0 0 0 1px rgba(155,111,207,.15);
+  --radius:20px; --radius-lg:28px; --t:.3s cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; min-height:100%; position:relative;
+  font-family:'Barlow',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;
+  padding-inline:clamp(16px,4vw,56px); padding-block:env(safe-area-inset-top,0px) 3rem;
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(91,45,142,.55) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 70%, rgba(123,77,174,.25) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 35% at 15% 65%, rgba(155,111,207,.15) 0%, transparent 50%),
+    radial-gradient(ellipse 30% 30% at 70% 30%, rgba(216,254,86,.08) 0%, transparent 50%);
+}
+header,main{position:relative;z-index:1}
+[hidden]{display:none!important}
+.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding-block:1.3rem 1.6rem}
+.brand{font-weight:900;font-size:1.35rem;letter-spacing:.02em;color:#fff;text-decoration:none;text-transform:uppercase}
+.brand em{color:var(--accent);font-style:normal}
+.brand small{display:block;font-size:.62rem;font-weight:600;letter-spacing:.18em;color:var(--text-2);margin-top:.15rem}
+.nav{display:flex;gap:.35rem}
+.nav a{font-weight:600;font-size:.85rem;color:var(--text-2);text-decoration:none;padding:.5rem .95rem;border-radius:999px;border:1px solid transparent;transition:var(--t)}
+.nav a:hover{color:#fff}
+.nav a.on{border-color:var(--glass-border);background:var(--glass-bg-strong);color:#fff}
+.nav a:focus-visible,.opt:focus-visible,.btn-p:focus-visible,.btn-o:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 .9rem}
+h1{font-weight:900;font-size:clamp(2.1rem,5vw,3.6rem);line-height:.95;letter-spacing:.01em;color:#fff;margin:0 0 .9rem;text-wrap:balance}
+.lead{color:var(--text-2);font-size:1.05rem;line-height:1.7;margin:0 0 1.8rem;max-width:60ch}
+.card{
+  background:var(--card-bg-strong); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--card-border); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.18);
+  padding:clamp(1.2rem,3vw,2rem);
+}
+.card h2{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-2);margin:0 0 1rem}
+.btn-p{
+  font:inherit;font-weight:700;font-size:.98rem;display:inline-flex;align-items:center;gap:.5rem;
+  background:linear-gradient(135deg,var(--accent),#b8e040);color:#1A1A2E;padding:.95rem 1.9rem;
+  border-radius:var(--radius);border:none;cursor:pointer;transition:var(--t);text-decoration:none;
+  box-shadow:0 4px 24px rgba(216,254,86,.35),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(216,254,86,.5)}
+.btn-p[disabled]{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-o{
+  font:inherit;font-weight:600;font-size:.92rem;color:var(--text-2);display:inline-flex;align-items:center;gap:.4rem;
+  border:1px solid var(--glass-border);background:var(--glass-bg-strong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  padding:.8rem 1.5rem;border-radius:var(--radius);cursor:pointer;transition:var(--t);text-decoration:none;
+}
+.btn-o:hover{color:#fff;border-color:rgba(255,255,255,.35)}
+.btn-o[disabled]{opacity:.5;cursor:not-allowed}
+
+/* ---------- invullen ---------- */
+.wrap{max-width:800px;margin-inline:auto}
+.field label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-2);margin-bottom:.5rem}
+.field input{
+  width:100%;font:inherit;font-size:1.15rem;font-weight:600;color:#fff;
+  background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;padding:.85rem 1rem;outline:none;transition:var(--t);
+}
+.field input::placeholder{color:var(--muted);font-weight:500}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(216,254,86,.18)}
+.hint{font-size:.88rem;color:var(--muted);margin:.5rem 0 0;line-height:1.5}
+.dim{margin:2.2rem 0 0}
+.dim-title{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;font-weight:800;font-size:1.25rem;text-transform:uppercase;letter-spacing:.02em;color:#fff;margin:0}
+.dim-title .n{color:var(--purple-light);font-weight:900}
+.dim-title small{font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-2);font-size:.98rem}
+.opts{display:grid;gap:.4rem;margin-top:.8rem}
+.opt{
+  display:grid;grid-template-columns:2.2rem 1fr;align-items:center;gap:.8rem;text-align:left;
+  font:inherit;font-size:1rem;color:var(--text-2);background:var(--glass-bg);border:1px solid var(--glass-border);
+  border-radius:14px;padding:.72rem .9rem;cursor:pointer;transition:var(--t);line-height:1.35;
+}
+.opt b{font-weight:900;font-size:1.25rem;color:var(--purple-light);text-align:center;font-variant-numeric:tabular-nums}
+.opt:hover{border-color:rgba(255,255,255,.35);color:#fff}
+.opt[aria-checked="true"]{background:rgba(216,254,86,.12);border-color:var(--accent);color:#fff}
+.opt[aria-checked="true"] b{color:var(--accent)}
+.actions{display:flex;align-items:center;gap:1rem;margin-top:2.2rem;flex-wrap:wrap}
+.msg{color:var(--text-2);font-size:.95rem;margin:0}
+.msg.err{color:#fff;font-weight:600}
+.done{text-align:center;padding:2.5rem 0 1.5rem}
+.done .big{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:900;color:#fff;line-height:.95;margin:0 0 1rem}
+.done p{color:var(--text-2);font-size:1.1rem;line-height:1.6;margin:0 0 1.6rem}
+
+/* ---------- dashboard ---------- */
+.dash-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.live{display:inline-flex;align-items:center;gap:.5rem}
+.live i{width:.55rem;height:.55rem;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 1.6s infinite}
+.live.off i{background:var(--muted);box-shadow:none;animation:none}
+@keyframes pulse{50%{opacity:.3}}
+.stat{text-align:right}
+.stat b{display:block;font-size:clamp(3rem,8vw,5.6rem);font-weight:900;line-height:.9;color:#fff;font-variant-numeric:tabular-nums}
+.stat b.bump{animation:bump .5s}
+.stat span{font-size:.7rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-2)}
+@keyframes bump{30%{transform:scale(1.1);color:var(--accent)}}
+.chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.3rem}
+.chip{display:inline-flex;align-items:center;gap:.6rem;padding:.55rem 1rem;border-radius:999px;border:1px solid var(--glass-border);background:var(--glass-bg-strong);font-weight:600;font-size:1rem;color:#fff}
+.chip i{width:.8rem;height:.8rem;border-radius:3px;background:var(--c,var(--muted));flex:none}
+.chip small{color:var(--text-2);font-weight:500;font-variant-numeric:tabular-nums}
+.chip.wait{opacity:.65;border-style:dashed}
+.dash-grid{display:grid;grid-template-columns:1fr;gap:1.2rem}
+@media(min-width:1000px){.dash-grid{grid-template-columns:5fr 6fr}}
+.radar{width:100%;height:auto;display:block;max-width:600px;margin-inline:auto}
+.legend{display:flex;flex-wrap:wrap;gap:.5rem 1.3rem;justify-content:center;margin-top:.6rem;font-size:.92rem;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:.5rem}
+.legend svg{width:28px;height:12px;flex:none}
+.empty{color:var(--muted);font-size:1rem;text-align:center;margin:1rem 0 0}
+.axis-head{display:grid;grid-template-columns:minmax(80px,120px) 1fr 2.6rem;gap:.7rem;margin-bottom:.3rem}
+.axis-head .scale{display:flex;justify-content:space-between;font-size:.72rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.bars{display:grid;gap:1.1rem}
+.bar-row{display:grid;gap:.35rem}
+.bar-row .lbl{font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:#fff;font-size:.95rem;display:flex;gap:.6rem;align-items:baseline;margin:0}
+.bar-row .lbl small{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);font-size:.82rem}
+.track{display:grid;grid-template-columns:minmax(80px,120px) 1fr 2.6rem;align-items:center;gap:.7rem}
+.track .tname{font-size:.9rem;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track .axis{
+  position:relative;height:20px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 1px,transparent 1px 25%);
+  border-right:1px solid rgba(255,255,255,.14);
+}
+.track .range{position:absolute;top:8.5px;height:3px;border-radius:2px;background:var(--c);opacity:.45}
+.track .dot{position:absolute;top:4px;width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--bg);transform:translateX(-50%);box-shadow:0 0 8px var(--c)}
+.track .val{font-size:.9rem;font-weight:700;color:var(--text-2);text-align:right;font-variant-numeric:tabular-nums}
+.ai-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.ai-head h2{margin:0;font-size:1.1rem;letter-spacing:.02em;color:#fff;text-transform:none}
+.ai-body{color:var(--text-2);line-height:1.6;margin:.8rem 0 0;font-size:.98rem;max-width:70ch}
+.ai-note{font-size:.9rem;color:var(--text-2);margin:.8rem 0 0}
+.ai-note:empty{display:none}
+textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-height:1.5;color:var(--text);background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;padding:.8rem;margin-top:.8rem;resize:vertical}
+.foot{margin:1.4rem 0 0;font-size:.85rem;color:var(--muted);display:flex;gap:1.2rem;flex-wrap:wrap}
+.foot a{color:var(--muted)}
+.foot a:hover{color:#fff}
+
+/* ---------- admin ---------- */
+.admin p{color:var(--text-2);line-height:1.6}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="#invullen">Morgen<em>.</em><small>PharmaPartners &middot; Kick-off agentic teams</small></a>
+  <nav class="nav" aria-label="Weergave">
+    <a href="#invullen" data-view="form">Invullen</a>
+    <a href="#dashboard" data-view="dash">Dashboard</a>
+  </nav>
+</header>
+
+<main id="view-form" class="wrap">
+  <p class="eyebrow">Team self-assessment &middot; anoniem</p>
+  <h1>Waar staat jouw team met AI?</h1>
+  <p class="lead">Vijf dimensies, score 1 tot 5. Kies per dimensie de omschrijving die het dichtst bij jullie huidige praktijk ligt. Duurt een minuut, niemand ziet wie wat invulde.</p>
+
+  <section class="card" id="form-card">
+    <div class="field">
+      <label for="team">Teamnaam</label>
+      <input id="team" list="teams" autocomplete="off" placeholder="Bijv. Medicatie, Portaal, Platform" maxlength="40">
+      <datalist id="teams"></datalist>
+      <p class="hint" id="team-hint">Staat je team al in de lijst? Kies dan dezelfde spelling, anders tellen jullie als twee teams.</p>
+    </div>
+    <div id="dims"></div>
+    <div class="actions">
+      <button class="btn-p" id="submit" type="button">Verstuur mijn score</button>
+      <p class="msg" id="form-msg" aria-live="polite">Verbinden met de database&hellip;</p>
+    </div>
+  </section>
+
+  <section class="card done" id="done-card" hidden>
+    <p class="eyebrow">Ontvangen</p>
+    <p class="big">Dank je.<br>Kijk naar het scherm.</p>
+    <p>Je score telt mee in het teamgemiddelde. Verkeerd geklikt? Je kunt je antwoord aanpassen, het oude wordt dan vervangen.</p>
+    <button class="btn-o" id="edit" type="button">Antwoord aanpassen</button>
+  </section>
+</main>
+
+<main id="view-dash" hidden>
+  <div class="dash-head">
+    <div>
+      <p class="eyebrow live" id="live"><i></i> Live</p>
+      <h1>AI-maturity per team</h1>
+    </div>
+    <div class="stat"><b id="total-n" aria-live="polite">0</b><span>antwoorden</span></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="dash-grid">
+    <section class="card">
+      <h2>Radar &middot; gemiddelde per team</h2>
+      <div id="radar"></div>
+      <div class="legend" id="legend"></div>
+      <p class="empty" id="dash-empty">Wachten op de eerste antwoorden&hellip;</p>
+    </section>
+    <section class="card">
+      <h2>Per dimensie &middot; gemiddelde en spreiding</h2>
+      <div class="axis-head"><span></span><span class="scale"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></span><span></span></div>
+      <div class="bars" id="bars"></div>
+    </section>
+  </div>
+  <section class="card" id="ai-card" style="margin-top:1.2rem">
+    <div class="ai-head">
+      <div><p class="eyebrow" style="margin-bottom:.3rem">Claude kijkt mee</p><h2>Wat valt op in deze cijfers?</h2></div>
+      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <a class="btn-p" id="open-claude" href="#" target="_blank" rel="noopener">Open in Claude</a>
+        <button class="btn-o" id="copy-prompt" type="button">Kopieer de vraag</button>
+      </div>
+    </div>
+    <p class="ai-body">De cijfers van dit dashboard gaan als vraag mee naar Claude: per team twee observaties en een gespreksvraag, plus een patroon over alle teams heen. Niets wordt automatisch verstuurd, jij drukt zelf op Enter.</p>
+    <p class="ai-note" id="ai-note"></p>
+    <textarea class="prompt" id="prompt-box" hidden readonly aria-label="De vraag voor Claude"></textarea>
+  </section>
+  <p class="foot" id="dash-foot"></p>
+</main>
+
+<main id="view-admin" class="wrap admin" hidden>
+  <p class="eyebrow">Beheer</p>
+  <h1>Antwoorden wissen</h1>
+  <section class="card">
+    <p>Er staan nu <b id="admin-n">0</b> antwoorden in de database. Wissen verwijdert alles, ook wat vandaag echt is ingevuld. Gebruik dit alleen om testdata op te ruimen v&oacute;&oacute;r de sessie.</p>
+    <div class="field" style="margin-top:1rem;max-width:320px">
+      <label for="secret">Wis-code</label>
+      <input id="secret" type="password" autocomplete="off" placeholder="Code van de begeleider">
+    </div>
+    <div class="actions" style="margin-top:1rem">
+      <button class="btn-o" id="wipe" type="button">Wis alle antwoorden</button>
+      <p class="msg" id="admin-msg" aria-live="polite"></p>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  var SUPABASE_URL='https://jeqvjtnxgxpjviwhjmzr.supabase.co';
+  var SUPABASE_KEY='sb_publishable_uO70RUh9JTZZEykA_mUyzw_hyMNfi7-';
+  var TABLE='pp_teamradar_responses';
+  var POLL_MS=15000;
+
+  var DIMS=[
+    {key:'adoptie',name:'Adoptie',q:'Hoeveel van het team gebruikt AI structureel?',anchors:[
+      'Minder dan 20% gebruikt AI wekelijks','20 tot 40% actief','40 tot 60% actief','60 tot 80% actief','Meer dan 80% actief en consistent']},
+    {key:'proces',name:'Proces',q:'Hoe ingebed in de sprintflow?',anchors:[
+      'Ad-hoc, geen afspraken','Enkele taken met AI','Vaste AI-stappen in DoR/DoD','AI standaard in de sprintflow','End-to-end AI-ondersteund proces']},
+    {key:'autonomie',name:'Autonomie',q:'Zelfstandig werken met AI?',anchors:[
+      'Alleen met begeleiding','Basis-zelfservice','Team past prompts en workflows aan','Team maakt eigen skill-aanpassingen','Team levert herbruikbare skills en workflows']},
+    {key:'kwaliteit',name:'Kwaliteit',q:'Outputkwaliteit ten opzichte van de baseline?',anchors:[
+      'Regelmatig correcties of rework','Kwaliteit wisselend','Stabiele kwaliteit met reviews','Gelijk aan of beter dan baseline','Structureel aantoonbaar beter']},
+    {key:'impact',name:'Impact',q:'Effect op teamresultaten?',anchors:[
+      'Geen meetbare verbetering','Beperkte winst op enkele taken','Meetbare winst op teamdoelen','Sterke verbetering op doorlooptijd of defects','Transformerend effect op throughput']}
+  ];
+  var SERIES=['#D8FE56','#9B6FCF','#F0ECF5','#C7B3E8'];
+  var DASH=['','9 6','2 5','10 4 2 4'];
+  var MIN_N_DEFAULT=3;
+
+  var $=function(s){return document.querySelector(s)};
+  var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var ls={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+  var clientId=ls.get('sa_client');
+  if(!clientId||clientId.length<8){clientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'c'+Date.now()+'-'+Math.random().toString(36).slice(2);ls.set('sa_client',clientId);}
+
+  var responses=[], sb=null, dbState='connecting', demo=false, minN=MIN_N_DEFAULT, view='form', lastTotal=-1;
+
+  /* ---------- aggregation (pure) ---------- */
+  function teamKey(name){return String(name||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/^team\s+/,'')}
+  function stats(vals){
+    var v=vals.filter(function(x){return x>=1&&x<=5});
+    if(!v.length) return {avg:null,min:null,max:null,n:0};
+    var sum=0; for(var i=0;i<v.length;i++) sum+=v[i];
+    return {avg:sum/v.length,min:Math.min.apply(null,v),max:Math.max.apply(null,v),n:v.length};
+  }
+  function aggregate(rs){
+    var map={}, order=[];
+    rs.forEach(function(r){
+      if(!r||!r.scores||!r.teamKey) return;
+      var t=map[r.teamKey];
+      if(!t){t={key:r.teamKey,names:{},first:Infinity,rows:[]};map[r.teamKey]=t;order.push(t);}
+      t.rows.push(r); t.names[r.team||r.teamKey]=(t.names[r.team||r.teamKey]||0)+1;
+      if(typeof r.ts==='number'&&r.ts<t.first) t.first=r.ts;
+    });
+    order.sort(function(a,b){return a.first-b.first||a.key.localeCompare(b.key)});
+    var teams=order.map(function(t,i){
+      var name=Object.keys(t.names).sort(function(a,b){return t.names[b]-t.names[a]||a.localeCompare(b)})[0];
+      var dims={};
+      DIMS.forEach(function(d){dims[d.key]=stats(t.rows.map(function(r){return +r.scores[d.key]}))});
+      return {key:t.key,name:name,n:t.rows.length,dims:dims,color:SERIES[i%SERIES.length],dash:DASH[i%DASH.length]};
+    });
+    var all={};
+    DIMS.forEach(function(d){all[d.key]=stats(rs.map(function(r){return r&&r.scores?+r.scores[d.key]:0})).avg});
+    return {teams:teams,all:all,total:rs.filter(function(r){return r&&r.scores&&r.teamKey}).length};
+  }
+
+  /* ---------- routing ---------- */
+  function route(){
+    var h=(location.hash||'#invullen').slice(1).toLowerCase();
+    view=h.indexOf('dashboard')===0?'dash':h.indexOf('admin')===0?'admin':'form';
+    demo=h.indexOf('demo')>-1; minN=h.indexOf('alles')>-1?1:MIN_N_DEFAULT;
+    ['form','dash','admin'].forEach(function(v){$('#view-'+v).hidden=(v!==view)});
+    document.querySelectorAll('.nav a').forEach(function(a){a.classList.toggle('on',a.getAttribute('data-view')===view)});
+    if(demo) responses=DEMO;
+    render();
+  }
+  window.addEventListener('hashchange',route);
+
+  /* ---------- form ---------- */
+  var sel={};
+  function buildForm(){
+    $('#dims').innerHTML=DIMS.map(function(d,i){
+      return '<div class="dim" role="radiogroup" aria-labelledby="dt-'+d.key+'" data-dim="'+d.key+'">'+
+        '<p class="dim-title" id="dt-'+d.key+'"><span class="n">'+(i+1)+'</span>'+esc(d.name)+'<small>'+esc(d.q)+'</small></p>'+
+        '<div class="opts">'+d.anchors.map(function(a,j){
+          return '<button type="button" class="opt" role="radio" aria-checked="false" id="opt-'+d.key+'-'+(j+1)+'" data-score="'+(j+1)+'"><b>'+(j+1)+'</b><span>'+esc(a)+'</span></button>';
+        }).join('')+'</div></div>';
+    }).join('');
+    $('#dims').addEventListener('click',function(e){
+      var btn=e.target.closest('.opt'); if(!btn) return;
+      var grp=btn.closest('.dim'), key=grp.getAttribute('data-dim');
+      grp.querySelectorAll('.opt').forEach(function(o){o.setAttribute('aria-checked','false')});
+      btn.setAttribute('aria-checked','true'); sel[key]=+btn.getAttribute('data-score');
+      if(dbState==='on') setFormMsg('');
+    });
+    var draft=null; try{draft=JSON.parse(ls.get('sa_draft')||'null')}catch(e){}
+    if(draft&&draft.scores){
+      $('#team').value=draft.team||'';
+      DIMS.forEach(function(d){var s=draft.scores[d.key]; if(s>=1&&s<=5){sel[d.key]=s; var b=$('#opt-'+d.key+'-'+s); if(b) b.setAttribute('aria-checked','true');}});
+      if(draft.submitted){$('#form-card').hidden=true;$('#done-card').hidden=false;}
+    }
+    $('#edit').addEventListener('click',function(){$('#done-card').hidden=true;$('#form-card').hidden=false;window.scrollTo({top:0});});
+    $('#submit').addEventListener('click',submit);
+  }
+  function setFormMsg(text,err){var m=$('#form-msg');m.textContent=text;m.className='msg'+(err?' err':'')}
+  function submit(){
+    var name=$('#team').value.trim();
+    if(!name){setFormMsg('Vul eerst je teamnaam in.',true);$('#team').focus();return;}
+    var missing=DIMS.filter(function(d){return !(sel[d.key]>=1&&sel[d.key]<=5)});
+    if(missing.length){setFormMsg('Nog geen score bij: '+missing.map(function(d){return d.name}).join(', ')+'.',true);var first=$('#dt-'+missing[0].key);if(first)first.scrollIntoView({behavior:'smooth',block:'center'});return;}
+    if(!sb){setFormMsg('Geen verbinding met de database. Herlaad de pagina.',true);return;}
+    var draft=null; try{draft=JSON.parse(ls.get('sa_draft')||'null')}catch(e){}
+    var scores={}; DIMS.forEach(function(d){scores[d.key]=sel[d.key]});
+    var row={id:clientId,team:name,team_key:teamKey(name),scores:scores,ts:(draft&&draft.ts)||Date.now(),updated_at:new Date().toISOString()};
+    var btn=$('#submit'); btn.disabled=true; setFormMsg('Versturen…');
+    sb.from(TABLE).upsert(row,{onConflict:'id'}).then(function(res){
+      if(res.error) throw res.error;
+      ls.set('sa_draft',JSON.stringify({team:name,scores:scores,ts:row.ts,submitted:true}));
+      $('#form-card').hidden=true;$('#done-card').hidden=false;window.scrollTo({top:0});setFormMsg('');
+      load();
+    }).catch(function(e){
+      setFormMsg('Versturen mislukt ('+((e&&e.message)||'onbekend')+'). Probeer het nog eens.',true);
+    }).then(function(){btn.disabled=false});
+  }
+  function renderForm(){
+    var agg=aggregate(responses);
+    $('#teams').innerHTML=agg.teams.map(function(t){return '<option value="'+esc(t.name)+'">'}).join('');
+    if(dbState==='connecting') setFormMsg('Verbinden met de database…');
+    else if(dbState==='off') setFormMsg('Geen verbinding met de database. Herlaad de pagina.',true);
+    else if($('#form-msg').textContent.indexOf('Verbinden')===0) setFormMsg('');
+  }
+
+  /* ---------- dashboard ---------- */
+  function radarSVG(teams,all){
+    var W=480,H=430,cx=240,cy=222,R=150,n=DIMS.length,s='';
+    var ang=function(i){return -Math.PI/2+i*2*Math.PI/n};
+    var pt=function(i,v){return [cx+Math.cos(ang(i))*R*v/5,cy+Math.sin(ang(i))*R*v/5]};
+    var poly=function(f){return DIMS.map(function(d,i){return pt(i,f(d,i)).map(function(x){return x.toFixed(1)}).join(',')}).join(' ')};
+    for(var r=1;r<=5;r++) s+='<polygon points="'+poly(function(){return r})+'" fill="none" stroke="rgba(155,111,207,'+(r===5?'.5':'.22')+')" stroke-width="1"/>';
+    DIMS.forEach(function(d,i){
+      var e=pt(i,5),l=pt(i,6.05);
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+e[0].toFixed(1)+'" y2="'+e[1].toFixed(1)+'" stroke="rgba(155,111,207,.3)"/>';
+      s+='<text x="'+l[0].toFixed(1)+'" y="'+l[1].toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" fill="#D8CCEC" font-family="Barlow,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">'+esc(d.name.toUpperCase())+'</text>';
+    });
+    for(var k=1;k<=5;k++){var p=pt(0,k);s+='<text x="'+(p[0]+7).toFixed(1)+'" y="'+(p[1]+4).toFixed(1)+'" fill="#7A6B8E" font-family="Barlow,Arial,sans-serif" font-size="10" font-weight="600">'+k+'</text>';}
+    var hasAll=DIMS.every(function(d){return all[d.key]!=null});
+    if(hasAll&&teams.length) s+='<polygon points="'+poly(function(d){return all[d.key]})+'" fill="rgba(91,45,142,.5)" stroke="none"/>';
+    teams.forEach(function(t){
+      s+='<polygon points="'+poly(function(d){return t.dims[d.key].avg||0})+'" fill="'+t.color+'" fill-opacity=".06" stroke="'+t.color+'" stroke-width="2.5" stroke-linejoin="round"'+(t.dash?' stroke-dasharray="'+t.dash+'"':'')+'/>';
+      DIMS.forEach(function(d,i){var p=pt(i,t.dims[d.key].avg||0);s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4.5" fill="'+t.color+'" stroke="#0C0818" stroke-width="2"/>';});
+    });
+    return '<svg class="radar" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Radar met gemiddelde score per team op vijf dimensies">'+s+'</svg>';
+  }
+  function legendHTML(teams){
+    var items=teams.map(function(t){
+      return '<span><svg viewBox="0 0 28 12"><line x1="1" y1="6" x2="27" y2="6" stroke="'+t.color+'" stroke-width="2.5"'+(t.dash?' stroke-dasharray="'+t.dash+'"':'')+'/></svg>'+esc(t.name)+' <small style="color:var(--muted)">n='+t.n+'</small></span>';
+    });
+    if(teams.length) items.push('<span><svg viewBox="0 0 28 12"><rect x="1" y="1" width="26" height="10" rx="2" fill="rgba(91,45,142,.7)"/></svg>Alle teams samen</span>');
+    return items.join('');
+  }
+  function barsHTML(teams,all){
+    var x=function(v){return ((v-1)/4*100)};
+    return DIMS.map(function(d){
+      var rows=teams.map(function(t){
+        var s=t.dims[d.key]; if(s.avg==null) return '';
+        return '<div class="track" style="--c:'+t.color+'" title="'+esc(t.name)+': gemiddeld '+s.avg.toFixed(1)+', laagste '+s.min+', hoogste '+s.max+'">'+
+          '<span class="tname">'+esc(t.name)+'</span>'+
+          '<span class="axis"><i class="range" style="left:'+x(s.min).toFixed(1)+'%;width:'+(x(s.max)-x(s.min)).toFixed(1)+'%"></i><i class="dot" style="left:'+x(s.avg).toFixed(1)+'%"></i></span>'+
+          '<b class="val">'+s.avg.toFixed(1)+'</b></div>';
+      }).join('');
+      var a=all[d.key];
+      return '<div class="bar-row"><p class="lbl">'+esc(d.name)+(a!=null&&teams.length?'<small>alle teams '+a.toFixed(1)+'</small>':'')+'</p>'+(rows||'<div class="track"><span class="tname" style="color:var(--muted)">nog niets</span><span class="axis"></span><b class="val"></b></div>')+'</div>';
+    }).join('');
+  }
+  function renderDash(){
+    var agg=aggregate(responses), shown=agg.teams.filter(function(t){return t.n>=minN});
+    var tn=$('#total-n'); tn.textContent=agg.total;
+    if(lastTotal>=0&&agg.total>lastTotal){tn.classList.remove('bump');void tn.offsetWidth;tn.classList.add('bump');}
+    lastTotal=agg.total;
+    $('#live').className='eyebrow live'+(dbState==='on'||demo?'':' off');
+    $('#live').innerHTML='<i></i> '+(demo?'Demo-data':dbState==='on'?'Live':dbState==='connecting'?'Verbinden…':'Geen verbinding');
+    $('#chips').innerHTML=agg.teams.length?agg.teams.map(function(t){
+      return '<span class="chip'+(t.n<minN?' wait':'')+'" style="--c:'+t.color+'"><i></i>'+esc(t.name)+' <small>'+(t.n<minN?t.n+' / '+minN:t.n)+'</small></span>';
+    }).join(''):'<span class="chip wait"><i></i>Nog geen teams</span>';
+    $('#radar').innerHTML=radarSVG(shown,agg.all);
+    $('#legend').innerHTML=legendHTML(shown);
+    $('#bars').innerHTML=barsHTML(shown,agg.all);
+    var em=$('#dash-empty');
+    em.hidden=shown.length>0;
+    em.textContent=agg.teams.length&&!shown.length?'Een team verschijnt zodra er minstens '+minN+' antwoorden zijn.':'Wachten op de eerste antwoorden…';
+    var prompt=shown.length?buildPrompt(agg,shown):'';
+    $('#open-claude').href=prompt?'https://claude.ai/new?q='+encodeURIComponent(prompt):'#';
+    $('#open-claude').classList.toggle('btn-p',true);
+    $('#open-claude').style.opacity=prompt?'':'.45';
+    $('#open-claude').style.pointerEvents=prompt?'':'none';
+    $('#copy-prompt').disabled=!prompt;
+    $('#prompt-box').value=prompt;
+    $('#dash-foot').innerHTML=(minN===1?'<a href="#dashboard">Verberg teams met minder dan '+MIN_N_DEFAULT+' antwoorden</a>':'<a href="#dashboard-alles">Toon ook teams met minder dan '+MIN_N_DEFAULT+' antwoorden</a>')+'<a href="#admin">Beheer</a>';
+  }
+
+  /* ---------- Claude ---------- */
+  function buildPrompt(agg,shown){
+    var table=shown.map(function(t){return t.name+' (n='+t.n+'): '+DIMS.map(function(d){var s=t.dims[d.key];return d.name+' '+s.avg.toFixed(1)+' ['+s.min+'-'+s.max+']'}).join(', ')}).join('\n');
+    var allLine='Alle teams samen: '+DIMS.map(function(d){return d.name+' '+(agg.all[d.key]==null?'-':agg.all[d.key].toFixed(1))}).join(', ');
+    return 'Je bent facilitator bij de kick-off van een AI-adoptietraject bij PharmaPartners, een softwarebedrijf met scrumteams. Teamleden scoorden hun team anoniem op vijf dimensies van AI-maturity, schaal 1 tot 5.\n\n'+
+      'Dimensies met ankers:\n'+DIMS.map(function(d){return d.name+': 1 = '+d.anchors[0]+' … 5 = '+d.anchors[4]}).join('\n')+'\n\n'+
+      'Resultaten per team (gemiddelde, tussen haken laagste en hoogste score binnen het team):\n'+table+'\n'+allLine+'\n\n'+
+      'Schrijf in het Nederlands, kort en concreet, bedoeld voor op een beamer tijdens de sessie:\n'+
+      '- Per team: 2 observaties van elk één zin, en 1 prikkelende gespreksvraag.\n'+
+      '- Daarna onder de kop PATROON: 1 ding dat over alle teams heen opvalt.\n'+
+      'Benoem grote spreiding binnen een team expliciet, dat betekent dat teamleden het niet eens zijn. Geen inleiding, geen afsluiting.';
+  }
+  function copyPrompt(){
+    var box=$('#prompt-box'), note=$('#ai-note'), text=box.value;
+    if(!text) return;
+    var done=function(){note.textContent='Gekopieerd. Plak de vraag in Claude.'};
+    var fail=function(){box.hidden=false;box.select();note.textContent='Kopiëren lukte niet automatisch. Selecteer de tekst hieronder en kopieer zelf.'};
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done,fail); else fail();
+  }
+
+  /* ---------- admin ---------- */
+  var armed=null;
+  function wipe(){
+    var msg=$('#admin-msg'), btn=$('#wipe'), secret=$('#secret').value.trim();
+    if(!sb){msg.textContent='Geen databaseverbinding.';return;}
+    if(!secret){msg.textContent='Vul eerst de wis-code in.';$('#secret').focus();return;}
+    if(!armed){armed=setTimeout(function(){armed=null;msg.textContent='';btn.textContent='Wis alle antwoorden';},6000);btn.textContent='Zeker? Klik nogmaals';msg.textContent='Dit kan niet ongedaan worden.';return;}
+    clearTimeout(armed); armed=null; btn.disabled=true; btn.textContent='Wissen…';
+    sb.rpc('pp_teamradar_wipe',{p_secret:secret}).then(function(res){
+      if(res.error) throw res.error;
+      msg.textContent=res.data+' antwoorden gewist.'; load();
+    }).catch(function(e){
+      var m=(e&&e.message)||'';
+      msg.textContent=m.indexOf('wrong secret')>-1?'Verkeerde wis-code.':'Wissen mislukt ('+(m||'onbekend')+').';
+    }).then(function(){btn.disabled=false;btn.textContent='Wis alle antwoorden';});
+  }
+  function renderAdmin(){$('#admin-n').textContent=aggregate(responses).total}
+
+  function render(){ if(view==='form') renderForm(); else if(view==='dash') renderDash(); else renderAdmin(); }
+
+  /* ---------- demo data for a local look ---------- */
+  var DEMO=(function(){
+    var rows=[], mk=function(team,ts,a,p,au,k,i){rows.push({team:team,teamKey:teamKey(team),ts:ts,scores:{adoptie:a,proces:p,autonomie:au,kwaliteit:k,impact:i}})};
+    mk('Medicatie',1,3,2,2,3,2);mk('Medicatie',2,4,2,3,3,2);mk('Medicatie',3,3,3,2,4,3);mk('Medicatie',4,2,1,2,3,2);
+    mk('Portaal',5,4,3,4,4,3);mk('Portaal',6,5,4,4,4,4);mk('Portaal',7,4,3,3,3,3);
+    mk('Platform',8,2,1,1,2,1);mk('Platform',9,3,2,2,2,1);mk('Platform',10,2,2,1,3,2);mk('Platform',11,4,3,3,3,2);
+    mk('Data',12,3,3,3,3,3);
+    return rows;
+  })();
+
+  /* ---------- data ---------- */
+  var loading=false;
+  function load(){
+    if(!sb||loading) return Promise.resolve();
+    loading=true;
+    return sb.from(TABLE).select('id,team,team_key,scores,ts').then(function(res){
+      if(res.error) throw res.error;
+      if(!demo){
+        responses=(res.data||[]).map(function(o){return {id:o.id,team:o.team,teamKey:o.team_key,scores:o.scores,ts:typeof o.ts==='number'?o.ts:+o.ts}});
+      }
+      dbState='on'; render();
+    }).catch(function(){dbState='off';render();}).then(function(){loading=false});
+  }
+
+  /* ---------- boot ---------- */
+  buildForm();
+  $('#copy-prompt').addEventListener('click',copyPrompt);
+  $('#wipe').addEventListener('click',wipe);
+  route();
+
+  if(window.supabase&&window.supabase.createClient){
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    load();
+    sb.channel('pp_teamradar').on('postgres_changes',{event:'*',schema:'public',table:TABLE},function(){load()}).subscribe();
+    setInterval(function(){if(!document.hidden)load()},POLL_MS);
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
+  } else {
+    dbState='off'; render();
+  }
+})();
+</script>
+</body>
+</html>
