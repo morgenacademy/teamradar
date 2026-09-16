@@ -127,7 +127,8 @@ h1{font-weight:900;font-size:clamp(2.1rem,5vw,3.6rem);line-height:.95;letter-spa
 .legend{display:flex;flex-wrap:wrap;gap:.5rem 1.3rem;justify-content:center;margin-top:.6rem;font-size:.92rem;color:var(--text-2)}
 .legend span{display:inline-flex;align-items:center;gap:.5rem}
 .legend svg{width:28px;height:12px;flex:none}
-.empty{color:var(--muted);font-size:1rem;text-align:center;margin:1rem 0 0}
+.empty{color:var(--text-2);font-size:1.05rem;text-align:center;margin:1rem 0 0;line-height:1.5}
+.empty a{color:var(--accent);font-weight:600}
 .axis-head{display:grid;grid-template-columns:minmax(80px,120px) 1fr 2.6rem;gap:.7rem;margin-bottom:.3rem}
 .axis-head .scale{display:flex;justify-content:space-between;font-size:.72rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .bars{display:grid;gap:1.1rem}
@@ -435,7 +436,7 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
     $('#bars').innerHTML=barsHTML(shown,agg.all);
     var em=$('#dash-empty');
     em.hidden=shown.length>0;
-    em.textContent=agg.teams.length&&!shown.length?'Een team verschijnt zodra er minstens '+minN+' antwoorden zijn.':'Wachten op de eerste antwoorden…';
+    em.innerHTML=agg.teams.length&&!shown.length?'Een team verschijnt bij minstens '+minN+' antwoorden, zodat niemand herleidbaar is. <a href="#dashboard-alles">Toon kleinere teams toch</a>.':'Wachten op de eerste antwoorden…';
     var prompt=shown.length?buildPrompt(agg,shown):'';
     $('#open-claude').href=prompt?'https://claude.ai/new?q='+encodeURIComponent(prompt):'#';
     $('#open-claude').classList.toggle('btn-p',true);
@@ -443,6 +444,7 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
     $('#open-claude').style.pointerEvents=prompt?'':'none';
     $('#copy-prompt').disabled=!prompt;
     $('#prompt-box').value=prompt;
+    var note=$('#ai-note'); if(!prompt){note.textContent='Beschikbaar zodra minstens \u00e9\u00e9n team zichtbaar is.';} else if(note.textContent.indexOf('Beschikbaar zodra')===0){note.textContent='';}
     $('#dash-foot').innerHTML=(minN===1?'<a href="#dashboard">Verberg teams met minder dan '+MIN_N_DEFAULT+' antwoorden</a>':'<a href="#dashboard-alles">Toon ook teams met minder dan '+MIN_N_DEFAULT+' antwoorden</a>')+'<a href="#admin">Beheer</a>';
   }
 
