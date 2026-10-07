@@ -153,6 +153,7 @@ h1{font-weight:900;font-size:clamp(2.1rem,5vw,3.6rem);line-height:.95;letter-spa
 textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-height:1.5;color:var(--text);background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;padding:.8rem;margin-top:.8rem;resize:vertical}
 .foot{margin:1.4rem 0 0;font-size:.85rem;color:var(--muted);display:flex;gap:1.2rem;flex-wrap:wrap}
 .foot a{color:var(--muted)}
+.foot span{display:contents}
 .foot a:hover{color:#fff}
 
 /* ---------- admin ---------- */
@@ -232,7 +233,7 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
     <p class="ai-note" id="ai-note"></p>
     <textarea class="prompt" id="prompt-box" hidden readonly aria-label="De vraag voor Claude"></textarea>
   </section>
-  <p class="foot" id="dash-foot"></p>
+  <p class="foot"><button class="link" type="button" id="dl-dash">Download resultaten als CSV</button><span id="dash-foot"></span></p>
 </main>
 
 <main id="view-admin" class="wrap admin" hidden>
@@ -244,7 +245,12 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
       <label for="secret">Wis-code</label>
       <input id="secret" type="password" autocomplete="off" placeholder="Code van de begeleider">
     </div>
-    <div class="actions" style="margin-top:1rem">
+    <p style="margin-top:1.4rem"><b>Bewaar ze eerst.</b> Wissen kan niet ongedaan worden. Download de antwoorden voordat je ze weggooit, dan houd je deze lichting als bestand.</p>
+    <div class="actions" style="margin-top:.8rem">
+      <button class="btn-p" id="dl-admin" type="button">Download resultaten als CSV</button>
+      <p class="msg" id="dl-msg" aria-live="polite"></p>
+    </div>
+    <div class="actions" style="margin-top:1.6rem">
       <button class="btn-o" id="wipe" type="button">Wis alle antwoorden</button>
       <p class="msg" id="admin-msg" aria-live="polite"></p>
     </div>
@@ -468,6 +474,47 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done,fail); else fail();
   }
 
+  /* ---------- downloaden ---------- */
+  function pad(n){return (n<10?'0':'')+n}
+  function csvCell(v){
+    var s=String(v);
+    return /[;"\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }
+  function csvText(){
+    // Puntkomma als scheidingsteken en komma als decimaalteken: zo opent het
+    // bestand meteen goed in een Nederlandse Excel.
+    var head=['Nr','Team','Adoptie','Proces','Autonomie','Kwaliteit','Impact','Gemiddeld','Ingevuld'];
+    var lines=[head.join(';')];
+    responses.slice().filter(function(r){return r&&r.scores&&r.team})
+      .sort(function(a,b){return (a.ts||0)-(b.ts||0)})
+      .forEach(function(r,i){
+        var s=DIMS.map(function(d){return +r.scores[d.key]});
+        var avg=s.reduce(function(a,b){return a+b},0)/s.length;
+        var d=new Date(r.ts||Date.now());
+        var stamp=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+        lines.push([i+1,csvCell(r.team)].concat(s).concat([
+          avg.toFixed(1).replace('.',','), stamp]).join(';'));
+      });
+    return lines.join('\r\n');
+  }
+  function downloadCSV(msgEl){
+    var n=aggregate(responses).total;
+    if(!n){ if(msgEl) msgEl.textContent='Er is nog niets om te downloaden.'; return; }
+    try{
+      var blob=new Blob(['\ufeff'+csvText()],{type:'text/csv;charset=utf-8;'});
+      var url=URL.createObjectURL(blob);
+      var d=new Date();
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='teamradar-'+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url)},1000);
+      if(msgEl) msgEl.textContent=n+' antwoorden gedownload.';
+    }catch(e){
+      if(msgEl) msgEl.textContent='Downloaden lukte niet in deze browser.';
+    }
+  }
+
   /* ---------- admin ---------- */
   var armed=null;
   function wipe(){
@@ -484,7 +531,12 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
       msg.textContent=m.indexOf('wrong secret')>-1?'Verkeerde wis-code.':'Wissen mislukt ('+(m||'onbekend')+').';
     }).then(function(){btn.disabled=false;btn.textContent='Wis alle antwoorden';});
   }
-  function renderAdmin(){$('#admin-n').textContent=aggregate(responses).total}
+  function renderAdmin(){
+    var n=aggregate(responses).total;
+    $('#admin-n').textContent=n;
+    $('#dl-admin').disabled=!n;
+    $('#wipe').disabled=!n;
+  }
 
   function render(){ if(view==='form') renderForm(); else if(view==='dash') renderDash(); else renderAdmin(); }
 
@@ -516,6 +568,8 @@ textarea.prompt{width:100%;min-height:180px;font:inherit;font-size:.9rem;line-he
   buildForm();
   $('#copy-prompt').addEventListener('click',copyPrompt);
   $('#wipe').addEventListener('click',wipe);
+  $('#dl-dash').addEventListener('click',function(){downloadCSV(null)});
+  $('#dl-admin').addEventListener('click',function(){downloadCSV($('#dl-msg'))});
   route();
 
   if(window.supabase&&window.supabase.createClient){
